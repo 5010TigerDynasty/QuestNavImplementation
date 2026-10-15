@@ -14,6 +14,7 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -299,5 +300,33 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     @Override
     public Optional<Pose2d> samplePoseAt(double timestampSeconds) {
         return super.samplePoseAt(Utils.fpgaToCurrentTime(timestampSeconds));
+    }
+
+    /**
+     * Returns the current robot pose in field coordinates.
+     * This matches the path-following API used by WPILib and PathPlanner.
+     */
+    public Pose2d getPose() {
+        return getState().Pose;
+    }
+
+    /**
+     * Returns the robot-relative chassis speeds.
+     * This matches the path-following API used by WPILib and PathPlanner.
+     */
+    public ChassisSpeeds getRobotRelativeSpeeds() {
+        return getState().Speeds;
+    }
+
+    /**
+     * Drives the robot using robot-relative chassis speeds.
+     * This matches the path-following API used by WPILib and PathPlanner.
+     */
+    public void driveRobotRelative(ChassisSpeeds speeds) {
+        var request = new SwerveRequest.RobotCentric()
+            .withVelocityX(speeds.vxMetersPerSecond)
+            .withVelocityY(speeds.vyMetersPerSecond)
+            .withRotationalRate(speeds.omegaRadiansPerSecond);
+        setControl(request);
     }
 }
