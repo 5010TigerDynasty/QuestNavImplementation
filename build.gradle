@@ -50,6 +50,22 @@ wpi.java.debugJni = false
 // Set this to true to enable desktop support.
 def includeDesktopSupport = true
 
+repositories {
+    mavenCentral()
+    mavenLocal()
+
+    def privateMavenUrl = findProperty("privateMavenUrl") ?: System.getenv("PRIVATE_MAVEN_URL")
+    if (privateMavenUrl) {
+        maven {
+            url = uri(privateMavenUrl)
+            credentials {
+                username = findProperty("privateMavenUsername") ?: System.getenv("PRIVATE_MAVEN_USERNAME")
+                password = findProperty("privateMavenPassword") ?: System.getenv("PRIVATE_MAVEN_PASSWORD")
+            }
+        }
+    }
+}
+
 // Defining my dependencies. In this case, WPILib (+ friends), and vendor libraries.
 // Also defines JUnit 5.
 dependencies {
