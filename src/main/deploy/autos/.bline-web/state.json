@@ -25,11 +25,39 @@
       "default_auto_velocity_merge_tolerance_meters_per_sec": 0.3
     }
   },
-  "active_path_file_name": "1-meter-right.json",
-  "active_path_group_id": null,
-  "path_groups": [],
+  "active_path_file_name": "righttrenchtolefttrench.json",
+  "active_path_group_id": "group-fbc9f107-e907-4e6b-ba46-1988d49e62b1",
+  "path_groups": [
+    {
+      "group_id": "group-fbe0c288-c8b5-479c-8195-5552ddcd29af",
+      "display_name": "New Collection",
+      "path_file_names": []
+    },
+    {
+      "group_id": "group-fbc9f107-e907-4e6b-ba46-1988d49e62b1",
+      "display_name": "test1024Autos",
+      "path_file_names": [
+        "righttrenchtolefttrench.json",
+        "1-meter-right.json",
+        "lefttrenchtohub.json",
+        "hubtorighttrench.json"
+      ]
+    }
+  ],
   "linked_targets": [],
   "paths": {
+    "hubtorighttrench.json": {
+      "display_name": "hubToRightTrench",
+      "editor_metadata": null
+    },
+    "righttrenchtolefttrench.json": {
+      "display_name": "rightTrenchToLeftTrench",
+      "editor_metadata": null
+    },
+    "lefttrenchtohub.json": {
+      "display_name": "leftTrenchToHub",
+      "editor_metadata": null
+    },
     "1-meter-right.json": {
       "display_name": "1-meter-right",
       "editor_metadata": null
