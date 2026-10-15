@@ -11,13 +11,17 @@ import static edu.wpi.first.units.Units.RotationsPerSecond;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.generated.TunerConstants;
+import frc.robot.lib.BLine.FollowPath;
+import frc.robot.lib.BLine.Path;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.QuestNavSubsystem;
 import frc.robot.subsystems.Utility;
@@ -25,6 +29,7 @@ import frc.robot.subsystems.Utility;
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
+    
 
     /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
@@ -40,6 +45,11 @@ public class RobotContainer {
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
     public final QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem(drivetrain);
+
+    Path oneMeterRightTest = new Path("1-meter-right");
+
+    //var initialModuleDirection = firstStraight.getInitialModuleDirection();
+
 
     public RobotContainer() {
         configureBindings();
@@ -101,4 +111,26 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle)
         );
     }
+
+
+    
+FollowPath.Builder pathBuilder = new FollowPath.Builder(
+    drivetrain,
+    drivetrain::getPose,
+    drivetrain::getRobotRelativeSpeeds,
+    drivetrain::driveRobotRelative,
+    new PIDController(2.0, 0.0, 0.0),
+    new PIDController(1.0, 0.0, 0.0),
+    new PIDController(0.2, 0.0, 0.0)
+).withDefaultShouldFlip()
+ .withTRatioBasedTranslationHandoffs(true);
+
+
+
+
+Command firstAuto = pathBuilder
+    .withPoseReset(drivetrain::resetPose)
+    .build(oneMeterRightTest);
+
+
 }
