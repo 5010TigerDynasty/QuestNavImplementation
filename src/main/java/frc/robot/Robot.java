@@ -21,6 +21,7 @@ public class Robot extends TimedRobot {
         .withJoystickReplay();
 
     public Robot() {
+        RobotLogging.start();
         m_robotContainer = new RobotContainer();
     }
 
