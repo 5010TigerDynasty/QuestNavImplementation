@@ -13,6 +13,8 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
@@ -29,6 +31,8 @@ public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
     
+    private final SendableChooser<Command> autoChooser =
+            new SendableChooser<>();
 
     /* Setting up bindings for necessary control of the swerve drive platform */
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
@@ -48,8 +52,23 @@ public class RobotContainer {
     /** Auto chooser with one entry per BLine path file, plus the original drive-forward auto. */
     public final BLineAutos autos;
 
+    private void configureAutos() {
+        autoChooser.setDefaultOption(
+            "Do Nothing",
+            Commands.none()
+        );
+
+        autoChooser.addOption(
+            "driveForwardAuto",
+            driveForwardAuto()
+        );
+
+        SmartDashboard.putData("Auto Chooser", autoChooser);
+    }
+
     public RobotContainer() {
         configureBindings();
+        configureAutos();
 
         FollowPath.Builder pathBuilder = new FollowPath.Builder(
             drivetrain,
