@@ -16,6 +16,7 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -43,11 +44,41 @@ public class QuestNavSubsystem extends SubsystemBase {
     private int _calculatedOffsetToRobotCenterCount = 0;
     private String networkTableRoot = "questnav";
 
+    // Simulated headset; only exists in simulation.
+    private QuestNavSim sim = null;
+    private double lastSimTime;
+
     public QuestNavSubsystem(CommandSwerveDrivetrain drivetrain) {
         this.drivetrain = drivetrain;
         // Initialization code for the QuestNav subsystem
         questNav.onConnected(() -> DriverStation.reportWarning("QuestNav connected", false));
         questNav.onDisconnected(() -> DriverStation.reportError("QuestNav disconnected", false));
+
+        if (RobotBase.isSimulation()) {
+            sim = new QuestNavSim(ROBOT_TO_QUEST, questNav.getLibVersion(), drivetrain.getPose());
+            // Resetting the pose in sim stands in for physically placing the robot (and re-zeroing the headset).
+            drivetrain.addPoseResetListener(sim::teleport);
+            lastSimTime = Timer.getFPGATimestamp();
+        }
+    }
+
+    /** The simulated headset, present only when running in simulation. */
+    public Optional<QuestNavSim> getSim() {
+        return Optional.ofNullable(sim);
+    }
+
+    /** Where the headset is assumed to be mounted on the robot. */
+    public Transform3d getRobotToQuest() {
+        return ROBOT_TO_QUEST;
+    }
+
+    @Override
+    public void simulationPeriodic() {
+        double now = Timer.getFPGATimestamp();
+        sim.update(drivetrain.getRobotRelativeSpeeds(), now - lastSimTime);
+        lastSimTime = now;
+        SmartDashboard.putNumber("QuestNavSim/EstimateErrorMeters",
+                drivetrain.getPose().getTranslation().getDistance(sim.getTruePose().getTranslation()));
     }
 
     @Override
@@ -116,15 +147,11 @@ public class QuestNavSubsystem extends SubsystemBase {
     }
 
     public Optional<Pose3d> getRobotPose() {
-        if (RobotBase.isReal()) {
-            if (latestPoseFrame == null) {
-                return Optional.empty();
-            }
-            return Optional.of(softResetTarget.transformBy(
-                    new Transform3d(softResetBase, getProcessedRobotPose())));
-        } else {
+        if (latestPoseFrame == null) {
             return Optional.empty();
         }
+        return Optional.of(softResetTarget.transformBy(
+                new Transform3d(softResetBase, getProcessedRobotPose())));
     }
 
     /** Minimum (1 - cos(angle)) for a sample to be usable; the estimate blows up near 0. */

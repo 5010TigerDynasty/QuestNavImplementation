@@ -2,7 +2,10 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import com.ctre.phoenix6.SignalLogger;
@@ -46,6 +49,9 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private static final Rotation2d kRedAlliancePerspectiveRotation = Rotation2d.k180deg;
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean m_hasAppliedOperatorPerspective = false;
+
+    /* Notified whenever the pose estimate is reset; null until first use because the super constructor runs first. */
+    private List<Consumer<Pose2d>> m_poseResetListeners;
 
     /* Swerve requests to apply during SysId characterization */
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
@@ -311,6 +317,22 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     @Override
     public Optional<Pose2d> samplePoseAt(double timestampSeconds) {
         return super.samplePoseAt(Utils.fpgaToCurrentTime(timestampSeconds));
+    }
+
+    /** Registers a callback run after every {@link #resetPose(Pose2d)}. Used by the Quest simulation. */
+    public void addPoseResetListener(Consumer<Pose2d> listener) {
+        if (m_poseResetListeners == null) {
+            m_poseResetListeners = new ArrayList<>();
+        }
+        m_poseResetListeners.add(listener);
+    }
+
+    @Override
+    public void resetPose(Pose2d pose) {
+        super.resetPose(pose);
+        if (m_poseResetListeners != null) {
+            m_poseResetListeners.forEach(listener -> listener.accept(pose));
+        }
     }
 
     /**
