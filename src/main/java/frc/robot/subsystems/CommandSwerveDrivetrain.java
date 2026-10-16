@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
@@ -242,6 +243,16 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         }
     }
 
+    /** Stops the simulation thread (if any) before releasing the drivetrain's devices. */
+    @Override
+    public void close() {
+        if (m_simNotifier != null) {
+            m_simNotifier.close();
+            m_simNotifier = null;
+        }
+        super.close();
+    }
+
     private void startSimThread() {
         m_lastSimTime = Utils.getCurrentTimeSeconds();
 
@@ -321,12 +332,17 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     /**
      * Drives the robot using robot-relative chassis speeds.
      * This matches the path-following API used by WPILib and PathPlanner.
+     * <p>
+     * Uses closed-loop velocity control: with open-loop voltage, the small speeds a path
+     * follower commands near the end of a path (about 0.1 m/s) produce less voltage than
+     * the drive's friction, so the robot stalls just outside the end tolerance.
      */
     public void driveRobotRelative(ChassisSpeeds speeds) {
         var request = new SwerveRequest.RobotCentric()
             .withVelocityX(speeds.vxMetersPerSecond)
             .withVelocityY(speeds.vyMetersPerSecond)
-            .withRotationalRate(speeds.omegaRadiansPerSecond);
+            .withRotationalRate(speeds.omegaRadiansPerSecond)
+            .withDriveRequestType(DriveRequestType.Velocity);
         setControl(request);
     }
 
