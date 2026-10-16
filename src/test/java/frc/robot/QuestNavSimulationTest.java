@@ -13,9 +13,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -40,6 +38,7 @@ class QuestNavSimulationTest {
         sim.setLatencyMs(0);
         sim.setNoise(0, 0);
         sim.setTracking(true);
+        sim.setMountError(0, 0);
         long deadline = System.nanoTime() + 5_000_000_000L;
         while (!sim.isHeadsetConnected() && System.nanoTime() < deadline) {
             Thread.sleep(5);
@@ -125,9 +124,7 @@ class QuestNavSimulationTest {
     void offsetCalibrationRecoversAWrongMountingTransform() throws InterruptedException {
         // The code assumes one mount; physically the headset is 10 cm forward and 5 cm right of that.
         // Rotation is about the true robot center, so calibration should report that shift.
-        Transform3d assumed = container.questNavSubsystem.getRobotToQuest();
-        Translation3d shifted = assumed.getTranslation().plus(new Translation3d(0.10, -0.05, 0.0));
-        sim.setMountTransform(new Transform3d(shifted, assumed.getRotation()));
+        sim.setMountError(0.10, -0.05);
         // Start at a clean origin so the spin is the only motion.
         container.drivetrain.resetPose(new Pose2d());
         runLoops(0.5);

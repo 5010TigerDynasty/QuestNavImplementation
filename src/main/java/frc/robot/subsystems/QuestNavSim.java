@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.networktables.NetworkTable;
@@ -36,6 +37,9 @@ import gg.questnav.questnav.protos.wpilib.FrameDataProto;
  *   <li>{@code LatencyMs}: back-dates each frame's timestamp. NetworkTables drops a value stamped
  *       older than the previous one, so lowering this while running briefly loses frames.
  *   <li>{@code NoiseTranslationMeters} / {@code NoiseHeadingDeg}: Gaussian noise per frame.
+ *   <li>{@code MountErrorX}, {@code MountErrorY}: meters the headset is really mounted away from
+ *       what the robot code assumes (robot frame). Dial this in, run the offset calibration, and it
+ *       should report this value; with 0 the calibration correctly reports about 0.
  *   <li>{@code OriginX}, {@code OriginY}, {@code OriginDeg}: where the headset's own world origin
  *       sits in field coordinates. Zero means the two frames are aligned.
  * </ul>
@@ -92,6 +96,8 @@ public class QuestNavSim implements AutoCloseable {
         SmartDashboard.setDefaultNumber(ROOT + "OriginX", 0.0);
         SmartDashboard.setDefaultNumber(ROOT + "OriginY", 0.0);
         SmartDashboard.setDefaultNumber(ROOT + "OriginDeg", 0.0);
+        SmartDashboard.setDefaultNumber(ROOT + "MountErrorX", 0.0);
+        SmartDashboard.setDefaultNumber(ROOT + "MountErrorY", 0.0);
     }
 
     private static NetworkTableInstance connectHeadsetClient() {
@@ -151,6 +157,16 @@ public class QuestNavSim implements AutoCloseable {
         SmartDashboard.putNumber(ROOT + "NoiseHeadingDeg", headingDegrees);
     }
 
+    /**
+     * Sets how far the headset is physically mounted from where the robot code assumes it is
+     * (meters, robot frame: +X forward, +Y left). Zero means the code's mount is exactly right.
+     * This is what the offset calibration command should measure.
+     */
+    public void setMountError(double xMeters, double yMeters) {
+        SmartDashboard.putNumber(ROOT + "MountErrorX", xMeters);
+        SmartDashboard.putNumber(ROOT + "MountErrorY", yMeters);
+    }
+
     /** Sets where the headset's own world origin is located in the field frame. */
     public void setOrigin(Pose2d origin) {
         SmartDashboard.putNumber(ROOT + "OriginX", origin.getX());
@@ -183,7 +199,13 @@ public class QuestNavSim implements AutoCloseable {
                 Rotation2d.fromDegrees(SmartDashboard.getNumber(ROOT + "OriginDeg", 0.0)));
 
         // Headset pose in the field, then expressed in the headset's own world frame.
-        Pose3d questInField = new Pose3d(truePose).transformBy(robotToQuest);
+        Transform3d physicalMount = new Transform3d(
+                robotToQuest.getTranslation().plus(new Translation3d(
+                        SmartDashboard.getNumber(ROOT + "MountErrorX", 0.0),
+                        SmartDashboard.getNumber(ROOT + "MountErrorY", 0.0),
+                        0.0)),
+                robotToQuest.getRotation());
+        Pose3d questInField = new Pose3d(truePose).transformBy(physicalMount);
         Pose3d questPose = questInField.relativeTo(new Pose3d(origin));
 
         double noiseTranslation = SmartDashboard.getNumber(ROOT + "NoiseTranslationMeters", 0.0);

@@ -41,6 +41,7 @@ class QuestNavSimTest {
         sim.setLatencyMs(0);
         sim.setNoise(0, 0);
         sim.setOrigin(new Pose2d());
+        sim.setMountError(0, 0);
         awaitTrue(sim::isHeadsetConnected, "fake headset should connect to the NT server");
     }
 
@@ -126,6 +127,26 @@ class QuestNavSimTest {
         Pose3d quest = publishAndRead().questPose3d();
 
         assertEquals(-1.02, quest.getX(), EPS);
+        assertEquals(-0.3, quest.getY(), EPS);
+    }
+
+    @Test
+    void mountErrorKnobsShiftTheHeadsetInTheRobotFrame() {
+        // Robot at the origin facing +X. The headset is mounted at x = -0.02, y = -0.3; a physical
+        // mounting error of (+0.10, -0.05) in the robot frame puts it at (0.08, -0.35).
+        sim.setMountError(0.10, -0.05);
+
+        Pose3d quest = publishAndRead().questPose3d();
+
+        assertEquals(0.08, quest.getX(), EPS);
+        assertEquals(-0.35, quest.getY(), EPS);
+        assertEquals(0.3, quest.getZ(), EPS);
+    }
+
+    @Test
+    void mountErrorIsZeroByDefault() {
+        Pose3d quest = publishAndRead().questPose3d();
+        assertEquals(-0.02, quest.getX(), EPS);
         assertEquals(-0.3, quest.getY(), EPS);
     }
 
