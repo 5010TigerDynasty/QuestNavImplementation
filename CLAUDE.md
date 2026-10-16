@@ -13,7 +13,7 @@ Use the Gradle wrapper (`gradlew.bat` on Windows):
 - Build: `./gradlew build`
 - Run in desktop simulation (sim GUI + DS enabled by default): `./gradlew simulateJava`
 - Deploy to roboRIO: `./gradlew deploy`
-- Tests (JUnit 5, none exist yet): `./gradlew test`; single test: `./gradlew test --tests "frc.robot.SomeTest"`
+- Tests (JUnit 5): `./gradlew test`; single test: `./gradlew test --tests "frc.robot.SomeTest"`. `AutoSimulationTest` runs every BLine path through the real `RobotContainer` in HAL + CTRE simulation in real time (~15 s total).
 
 ## Architecture
 
@@ -22,4 +22,5 @@ Use the Gradle wrapper (`gradlew.bat` on Windows):
 - `subsystems/QuestNavSubsystem`: in `periodic()` it calls `questNav.commandPeriodic()`, drains `getAllUnreadPoseFrames()`, converts each tracking frame's Quest pose to a robot pose via the inverse of `ROBOT_TO_QUEST` (the headset's mounting transform on the robot), and feeds it to `drivetrain.addVisionMeasurement(pose, timestamp, QUESTNAV_STD_DEVS)`. It also publishes connection/tracking/battery stats to SmartDashboard.
   - "Soft reset" (`softReset`/`resetPose`) re-zeroes pose purely in code via `softResetTransform` instead of sending a reset command to the headset; `getRobotPose()` applies it. Note `getRobotPose()` returns empty in simulation.
   - `determineOffsetToRobotCenter` is a calibration command (bound to controller X): it spins the robot in place repeatedly, and from the Quest's apparent displacement computes the headset's offset from the robot's rotation center, averaging across iterations and publishing to NetworkTables. Use this to tune `ROBOT_TO_QUEST`.
+- `BLineAutos` / `BLineLogging`: BLine (path-following lib, paths in `src/main/deploy/autos/paths/*.json`) autos. `BLineAutos` builds an "Auto Chooser" (SmartDashboard) with one entry per path file plus the original drive-forward auto as default, and keeps a "BLine Field" `Field2d` with the robot and selected path (flipped for red alliance). `BLineLogging` publishes BLine's target poses etc. to NetworkTables under `/BLine/` for AdvantageScope. `RobotContainer.getAutonomousCommand()` returns the chosen auto; `Robot.robotPeriodic()` calls `RobotContainer.periodic()` to refresh the field view. `CommandSwerveDrivetrain.driveRobotRelative` uses closed-loop velocity (open-loop stalled short of the end tolerance).
 - `subsystems/Utility.controllerDeadband`: joystick deadband helper used by the default drive command.

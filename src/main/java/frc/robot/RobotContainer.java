@@ -21,7 +21,6 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.generated.TunerConstants;
 import frc.robot.lib.BLine.FollowPath;
-import frc.robot.lib.BLine.Path;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.QuestNavSubsystem;
 import frc.robot.subsystems.Utility;
@@ -46,13 +45,31 @@ public class RobotContainer {
 
     public final QuestNavSubsystem questNavSubsystem = new QuestNavSubsystem(drivetrain);
 
-    Path oneMeterRightTest = new Path("1-meter-right");
-
-    //var initialModuleDirection = firstStraight.getInitialModuleDirection();
-
+    /** Auto chooser with one entry per BLine path file, plus the original drive-forward auto. */
+    public final BLineAutos autos;
 
     public RobotContainer() {
         configureBindings();
+
+        FollowPath.Builder pathBuilder = new FollowPath.Builder(
+            drivetrain,
+            drivetrain::getPose,
+            drivetrain::getRobotRelativeSpeeds,
+            drivetrain::driveRobotRelative,
+            new PIDController(2.0, 0.0, 0.0), // translation
+            // Rotation: 1.0 stalled ~7 deg short in sim, outside the 2 deg end tolerance, so autos never ended.
+            new PIDController(3.0, 0.0, 0.0),
+            new PIDController(0.2, 0.0, 0.0)  // cross-track
+        ).withDefaultShouldFlip()
+         .withTRatioBasedTranslationHandoffs(true)
+         .withPoseReset(drivetrain::resetPose);
+
+        autos = new BLineAutos(pathBuilder, driveForwardAuto(), drivetrain::getPose);
+    }
+
+    /** Call every robot loop to keep the sim/AdvantageScope field view up to date. */
+    public void periodic() {
+        autos.periodic();
     }
 
     private void configureBindings() {
@@ -94,6 +111,10 @@ public class RobotContainer {
     }
 
     public Command getAutonomousCommand() {
+        return autos.getSelected();
+    }
+
+    private Command driveForwardAuto() {
         // Simple drive forward auton
         final var idle = new SwerveRequest.Idle();
         return Commands.sequence(
@@ -111,26 +132,5 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle)
         );
     }
-
-
-    
-FollowPath.Builder pathBuilder = new FollowPath.Builder(
-    drivetrain,
-    drivetrain::getPose,
-    drivetrain::getRobotRelativeSpeeds,
-    drivetrain::driveRobotRelative,
-    new PIDController(2.0, 0.0, 0.0),
-    new PIDController(1.0, 0.0, 0.0),
-    new PIDController(0.2, 0.0, 0.0)
-).withDefaultShouldFlip()
- .withTRatioBasedTranslationHandoffs(true);
-
-
-
-
-Command firstAuto = pathBuilder
-    .withPoseReset(drivetrain::resetPose)
-    .build(oneMeterRightTest);
-
 
 }
