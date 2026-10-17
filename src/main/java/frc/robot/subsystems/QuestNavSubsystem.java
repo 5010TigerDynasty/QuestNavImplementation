@@ -27,13 +27,10 @@ import gg.questnav.questnav.QuestNav;
 public class QuestNavSubsystem extends SubsystemBase {
     QuestNav questNav = new QuestNav();
     CommandSwerveDrivetrain drivetrain;
-    Transform3d ROBOT_TO_QUEST = new Transform3d(-0.02, -0.3, 0.3, new Rotation3d(0, 0, -Math.PI / 2)); // Translation
-                                                                                                        // and rotation
-                                                                                                        // from robot to
-                                                                                                        // QuestNav
-                                                                                                        // camera
-    Matrix<N3, N1> QUESTNAV_STD_DEVS = VecBuilder.fill(0.02, 0.02, 0.0872665); // Translation from robot to QuestNav
-                                                                               // camera
+    // Translation and rotation from robot to QuestNav camera
+    Transform3d ROBOT_TO_QUEST = new Transform3d(0, 0, 0.3, new Rotation3d(0, 0, -Math.PI / 2)); 
+    Transform3d ROBOT_TO_QUEST_SIM = new Transform3d(-0.02010203, -0.30405, 0.3, new Rotation3d(0, 0, -Math.PI / 2)); 
+    Matrix<N3, N1> QUESTNAV_STD_DEVS = VecBuilder.fill(0.02, 0.02, 0.0872665); 
 
     // Soft reset state — applied in code without sending a command to the headset
     private Pose3d softResetBase = new Pose3d();
@@ -55,7 +52,7 @@ public class QuestNavSubsystem extends SubsystemBase {
         questNav.onDisconnected(() -> DriverStation.reportError("QuestNav disconnected", false));
 
         if (RobotBase.isSimulation()) {
-            sim = new QuestNavSim(ROBOT_TO_QUEST, questNav.getLibVersion(), drivetrain.getPose());
+            sim = new QuestNavSim(ROBOT_TO_QUEST_SIM, questNav.getLibVersion(), drivetrain.getPose());
             // Resetting the pose in sim stands in for physically placing the robot (and re-zeroing the headset).
             drivetrain.addPoseResetListener(sim::teleport);
             lastSimTime = Timer.getFPGATimestamp();
@@ -78,7 +75,7 @@ public class QuestNavSubsystem extends SubsystemBase {
         sim.update(drivetrain.getRobotRelativeSpeeds(), now - lastSimTime);
         lastSimTime = now;
         SmartDashboard.putNumber("QuestNavSim/EstimateErrorMeters",
-                drivetrain.getPose().getTranslation().getDistance(sim.getTruePose().getTranslation()));
+                drivetrain.getPose().getTranslation().getDistance(sim.getTrueRobotPose().getTranslation()));
     }
 
     @Override
